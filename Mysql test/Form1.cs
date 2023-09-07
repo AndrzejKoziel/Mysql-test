@@ -1,6 +1,8 @@
 ﻿using ServiceStack.OrmLite;
 using System;
 using System.Windows.Forms;
+using MySql.Data.MySqlClient;
+using System.Data;
 
 namespace Mysql_test
 {
@@ -11,34 +13,42 @@ namespace Mysql_test
             InitializeComponent();
         }
 
-        public class LowercaseNamingStrategy : OrmLiteNamingStrategyBase
+        private void ConnectWebLegacy(string connectionString)
         {
-            public override string GetTableName(string name)
-            {
-                return name.ToLower();
-            }
+                using (var db = DbCreation.Create(connectionString).Open())
+                {
+                    string setcharset = "SET NAMES 'utf8'";
+                    var cmd = db.CreateCommand();
+                    cmd.CommandText = setcharset;
+                    cmd.ExecuteNonQuery();
+
+                    var cmd2 = db.CreateCommand();
+                    cmd2.CommandText = "Select max(id) from trackedchanges";
+                    var lastId = Convert.ToInt32(cmd2.ExecuteScalar());
+                }
         }
 
-        private void Connect(string connectionString)
+        private void ConnectMySqlData(string connectionString)
         {
-            using (var db = DbCreation.Create(connectionString).Open())
-            {
-                string setcharset = "SET NAMES 'utf8'";
-                var cmd = db.CreateCommand();
-                cmd.CommandText = setcharset;
-                cmd.ExecuteNonQuery();
+            MySqlConnection conn;
 
-                var cmd2 = db.CreateCommand();
-                cmd2.CommandText = "Select max(id) from trackchanges";
-                var lastId = Convert.ToInt32(cmd2.ExecuteScalar());
+                using (conn = new MySqlConnection())
+                {
+                    conn.ConnectionString = connectionString;
+                    conn.Open();
 
-            }
+                    var cmd2 = conn.CreateCommand();
+                    cmd2.CommandText = "Select max(id) from trackedchanges";
+                    var lastId = Convert.ToInt32(cmd2.ExecuteScalar());
+                }
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
             var connectionString = "TO_FILL!!!";
-            Connect(connectionString);
+
+            //ConnectWebLegacy(connectionString);
+            ConnectMySqlData(connectionString);
         }
     }
 }
